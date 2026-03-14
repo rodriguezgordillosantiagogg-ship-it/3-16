@@ -6,20 +6,32 @@ const videoContainer = document.getElementById('videoContainer');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-const Y_PISO = canvas.height - 40; // Ajustado a la línea de tierra de tu imagen
+const Y_PISO = canvas.height - 40;
 
-// --- CARGA DE ASSETS ---
+// --- SISTEMA DE CARGA SEGURO ---
+let imagenesCargadas = 0;
+const totalImagenes = 6;
+
+function checkCarga() {
+    imagenesCargadas++;
+    if (imagenesCargadas === totalImagenes) {
+        console.log("Todo listo, arrancando...");
+        main(); // Solo arranca cuando todo cargó
+    }
+}
+
 const assets = {
     lit: new Image(), canto: new Image(), fondo: new Image(),
     bafle: new Image(), micro: new Image(), gorra: new Image()
 };
 
-assets.lit.src = 'lit_killah_master.png';
-assets.canto.src = 'lit_cantando_flow.png';
-assets.fondo.src = 'fondo_ciudad_fiesta.jpg';
-assets.bafle.src = 'bafle_anim.png.png';
-assets.micro.src = 'micro_anim.png';
-assets.gorra.src = 'enemigo_gorra.png';
+// Asignar fuentes y vigilar carga
+assets.lit.onload = checkCarga; assets.lit.src = 'lit_killah_master.png';
+assets.canto.onload = checkCarga; assets.canto.src = 'lit_cantando_flow.png';
+assets.fondo.onload = checkCarga; assets.fondo.src = 'fondo_ciudad_fiesta.jpg';
+assets.bafle.onload = checkCarga; assets.bafle.src = 'bafle_anim.png.png';
+assets.micro.onload = checkCarga; assets.micro.src = 'micro_anim.png';
+assets.gorra.onload = checkCarga; assets.gorra.src = 'enemigo_gorra.png';
 
 let scrollOffset = 0;
 let gameIsOver = false;
@@ -34,17 +46,12 @@ class Jugador {
     }
     dibujar() {
         const ahora = Date.now();
-        let img = assets.lit;
+        let img = (showIsRunning && cinematicPlayed) ? assets.canto : assets.lit;
         let fila = (teclas.derecha.presionada || teclas.izquierda.presionada) ? 64 : 0;
         
-        if (showIsRunning && cinematicPlayed) {
-            img = assets.canto; fila = 0;
-            if (ahora - this.timer > 150) { this.frame = (this.frame + 1) % 4; this.timer = ahora; }
-        } else {
-            let maxFrames = (fila === 64) ? 4 : 2;
-            if (ahora - this.timer > 100) { this.frame = (this.frame + 1) % maxFrames; this.timer = ahora; }
-        }
-        // Dibujamos a Lit (si la imagen no carga, sale el cuadro, asegúrate que sea .png)
+        let maxFrames = (showIsRunning) ? 4 : (fila === 64 ? 4 : 2);
+        if (ahora - this.timer > 100) { this.frame = (this.frame + 1) % maxFrames; this.timer = ahora; }
+        
         ctx.drawImage(img, this.frame * 64, fila, 64, 64, this.x, this.y, 120, 120);
     }
     actualizar() {
@@ -96,7 +103,7 @@ function main() {
     if (window.innerHeight > window.innerWidth) { requestAnimationFrame(main); return; }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Fondo
+    // Fondo Parallax
     let xF = -(scrollOffset * 0.5 % canvas.width);
     ctx.drawImage(assets.fondo, xF, 0, canvas.width, canvas.height);
     ctx.drawImage(assets.fondo, xF + canvas.width, 0, canvas.width, canvas.height);
@@ -121,7 +128,6 @@ function main() {
     else {
         ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(0,0,canvas.width,canvas.height);
         ctx.fillStyle = "white"; ctx.font = "30px Arial"; ctx.textAlign="center";
-        ctx.fillText("FIN DEL JUEGO - RECARGA", canvas.width/2, canvas.height/2);
+        ctx.fillText("GAME OVER - RECARGA LA PÁGINA", canvas.width/2, canvas.height/2);
     }
 }
-main();
