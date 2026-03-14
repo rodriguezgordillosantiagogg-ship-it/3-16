@@ -7,57 +7,24 @@
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
         canvas { display: block; }
-        
-        /* Contenedor del Video Cinemático */
-        #videoContainer {
-            display: none; position: fixed; top: 0; left: 0; 
-            width: 100%; height: 100%; background: black; z-index: 200;
-        }
+        #videoContainer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 200; }
         video { width: 100%; height: 100%; object-fit: contain; }
-
-        /* Controles Táctiles */
-        .ui-controls {
-            position: fixed; bottom: 30px; left: 0; width: 100%;
-            display: flex; justify-content: space-between; padding: 0 40px;
-            box-sizing: border-box; pointer-events: none; z-index: 10;
-        }
-        .btn {
-            width: 80px; height: 80px; background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 24px; pointer-events: auto; user-select: none;
-            backdrop-filter: blur(5px); -webkit-tap-highlight-color: transparent;
-        }
+        .ui-controls { position: fixed; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 40px; box-sizing: border-box; pointer-events: none; z-index: 10; }
+        .btn { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; pointer-events: auto; user-select: none; backdrop-filter: blur(5px); -webkit-tap-highlight-color: transparent; }
         .btn:active { background: rgba(255, 255, 255, 0.4); transform: scale(0.9); }
         .jump-btn { border-color: #a347ff; background: rgba(163, 71, 255, 0.2); }
-
-        /* Mensaje de Rotación */
-        #rotate-message {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; color: white; z-index: 300;
-            flex-direction: column; align-items: center; justify-content: center;
-        }
+        #rotate-message { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 300; flex-direction: column; align-items: center; justify-content: center; }
         @media (orientation: portrait) { #rotate-message { display: flex; } }
     </style>
 </head>
 <body>
-
     <div id="rotate-message"><h2>🔄 Gira el celular para jugar</h2></div>
-
-    <div id="videoContainer">
-        <video id="videoFinal"><source src="intro_final.mp4" type="video/mp4"></video>
-    </div>
-
+    <div id="videoContainer"><video id="videoFinal"><source src="intro_final.mp4" type="video/mp4"></video></div>
     <canvas id="gameCanvas"></canvas>
-
     <div class="ui-controls">
-        <div style="display: flex; gap: 20px;">
-            <div id="btnIzq" class="btn">◀</div>
-            <div id="btnDer" class="btn">▶</div>
-        </div>
+        <div style="display: flex; gap: 20px;"><div id="btnIzq" class="btn">◀</div><div id="btnDer" class="btn">▶</div></div>
         <div id="btnSalto" class="btn jump-btn">JUMP</div>
     </div>
-
     <audio id="audioFinal" src="mensaje_sofi.mp3"></audio>
     <script src="script.js"></script>
 </body>
