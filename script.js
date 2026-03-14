@@ -12,7 +12,6 @@ let scrollOffset = 0;
 const GRAVEDAD = 0.8;
 let VELOCIDAD = 6;
 let SALTO = 16;
-const FRAMES_WALK = 4;
 
 // Sprites
 const assets = {
@@ -30,7 +29,7 @@ assets.bafle.src = 'bafle_anim.png';
 assets.gorra.src = 'enemigo_gorra.png';
 
 // Estado
-let lit = { x: 100, y: 0, dy: 0, w: 120, h: 120 };
+let lit = { x: 100, y: 0, dy: 0, w: 120, h: 120, estado: 'quieto' }; // estados: 'quieto','camina','salta','canta'
 let enSuelo = false;
 let showActivo = false;
 let gameFinished = false;
@@ -59,7 +58,7 @@ resize();
 // Reinicia juego
 function reiniciar() {
     scrollOffset = 0;
-    lit.x = 100; lit.y = Y_PISO - lit.h; lit.dy = 0;
+    lit.x = 100; lit.y = Y_PISO - lit.h; lit.dy = 0; lit.estado='quieto';
     gameFinished = false;
     showActivo = false;
     teclas.derecha = false; teclas.izquierda = false;
@@ -93,8 +92,8 @@ function loop() {
     // 3. Física personaje
     if (!showActivo) {
         lit.y += lit.dy;
-        if (lit.y + lit.h < Y_PISO) { lit.dy += GRAVEDAD; enSuelo = false; }
-        else { lit.dy = 0; lit.y = Y_PISO - lit.h; enSuelo = true; }
+        if (lit.y + lit.h < Y_PISO) { lit.dy += GRAVEDAD; enSuelo = false; lit.estado='salta'; }
+        else { lit.dy = 0; lit.y = Y_PISO - lit.h; enSuelo = true; lit.estado=teclas.derecha||teclas.izquierda?'camina':'quieto'; }
 
         if (teclas.derecha) {
             if (lit.x < canvas.width * 0.4) lit.x += VELOCIDAD;
@@ -111,11 +110,11 @@ function loop() {
         let ex = en.x - scrollOffset;
         if (ex > -en.w && ex < canvas.width) {
             if (assets[en.sprite].complete) {
-                let f = Math.floor(Date.now() / 150) % FRAMES_WALK;
+                let f = Math.floor(Date.now() / 150) % 4;
                 ctx.drawImage(
                     assets[en.sprite],
-                    f * (assets[en.sprite].width / FRAMES_WALK), 0,
-                    assets[en.sprite].width / FRAMES_WALK, assets[en.sprite].height,
+                    f * (assets[en.sprite].width / 4), 0,
+                    assets[en.sprite].width / 4, assets[en.sprite].height,
                     ex, en.y, en.w, en.h
                 );
             }
@@ -131,15 +130,20 @@ function loop() {
         }
     });
 
-    // 5. Personaje
+    // 5. Personaje con animaciones
     let sprite = showActivo ? assets.canto : assets.lit;
     if (sprite.complete) {
-        let cols = 4, filas = showActivo ? 1 : 2;
-        let sw = sprite.width / cols;
-        let sh = sprite.height / filas;
-        let fila = showActivo ? 0 : 0;
-        let f = Math.floor(Date.now() / (showActivo ? 250 : 150)) % cols;
-        ctx.drawImage(sprite, f * sw, fila * sh, sw, sh, lit.x, lit.y, lit.w, lit.h);
+        let cols = 4;
+        let filas = showActivo?1:2;
+        let sw = sprite.width/cols;
+        let sh = sprite.height/filas;
+        let fila=0;
+        if(!showActivo){
+            if(lit.estado=='camina') fila=1;
+            else fila=0;
+        }
+        let f = Math.floor(Date.now() / (showActivo?250:150)) % cols;
+        ctx.drawImage(sprite,f*sw,fila*sh,sw,sh,lit.x,lit.y,lit.w,lit.h);
     }
 
     // 6. Meta
@@ -147,14 +151,20 @@ function loop() {
     ctx.fillStyle = "white"; ctx.fillRect(metaX, Y_PISO - 300, 8, 300);
     ctx.fillStyle = "red"; ctx.fillRect(metaX + 8, Y_PISO - 300, 50, 40);
 
-    if (scrollOffset > 4950 && !showActivo) {
-        showActivo = true;
-        teclas.derecha = false; teclas.izquierda = false;
-        videoContainer.style.display = "block";
-        videoFinal.play().catch(() => console.log("Clic para activar video/audio"));
-        videoFinal.onended = () => {
-            videoContainer.style.display = "none";
-            audioFinal.play().catch(() => console.log("Clic para activar audio"));
+    // 7. Barra de progreso
+    let progreso = Math.min(scrollOffset/5000,1);
+    ctx.fillStyle = "#444"; ctx.fillRect(10,10,canvas.width-20,20);
+    ctx.fillStyle = "#ffaa00"; ctx.fillRect(10,10,(canvas.width-20)*progreso,20);
+
+    // 8. Activar show final
+    if(scrollOffset>4950 && !showActivo){
+        showActivo=true;
+        teclas.derecha=false; teclas.izquierda=false;
+        videoContainer.style.display="block";
+        videoFinal.play().catch(()=>console.log("Clic para activar video/audio"));
+        videoFinal.onended=()=>{
+            videoContainer.style.display="none";
+            audioFinal.play().catch(()=>console.log("Clic para activar audio"));
         };
     }
 
@@ -162,56 +172,56 @@ function loop() {
 }
 
 // --- CONTROLES TECLADO ---
-window.addEventListener('keydown', e => {
-    if (e.code === 'ArrowRight') teclas.derecha = true;
-    if (e.code === 'ArrowLeft') teclas.izquierda = true;
-    if (e.code === 'Space' && enSuelo && !showActivo) lit.dy = -SALTO;
+window.addEventListener('keydown',e=>{
+    if(e.code==='ArrowRight') teclas.derecha=true;
+    if(e.code==='ArrowLeft') teclas.izquierda=true;
+    if(e.code==='Space' && enSuelo && !showActivo) lit.dy=-SALTO;
 });
-window.addEventListener('keyup', e => {
-    if (e.code === 'ArrowRight') teclas.derecha = false;
-    if (e.code === 'ArrowLeft') teclas.izquierda = false;
+window.addEventListener('keyup',e=>{
+    if(e.code==='ArrowRight') teclas.derecha=false;
+    if(e.code==='ArrowLeft') teclas.izquierda=false;
 });
 
 // --- BOTÓN DE INICIO ---
-playButton.onclick = () => { playButton.style.display = "none"; loop(); };
+playButton.onclick=()=>{ playButton.style.display="none"; loop(); };
 
-// --- REINICIO AL TOCAR DESPUÉS DE MORIR ---
-canvas.addEventListener('click', () => { if (gameFinished) reiniciar(); });
-canvas.addEventListener('touchstart', () => { if (gameFinished) reiniciar(); });
+// --- REINICIO AL TOCAR ---
+canvas.addEventListener('click',()=>{ if(gameFinished) reiniciar(); });
+canvas.addEventListener('touchstart',()=>{ if(gameFinished) reiniciar(); });
 
-// --- CONTROLES TÁCTILES MÓVIL ---
-function createMobileControls() {
-    const controls = document.createElement('div');
-    controls.style.position = 'fixed';
-    controls.style.bottom = '10px';
-    controls.style.left = '0';
-    controls.style.width = '100%';
-    controls.style.display = 'flex';
-    controls.style.justifyContent = 'space-around';
-    controls.style.zIndex = 1500;
+// --- CONTROLES MÓVILES ---
+function createMobileControls(){
+    const controls=document.createElement('div');
+    controls.style.position='fixed';
+    controls.style.bottom='10px';
+    controls.style.left='0';
+    controls.style.width='100%';
+    controls.style.display='flex';
+    controls.style.justifyContent='space-around';
+    controls.style.zIndex=1500;
 
-    const btnIzq = document.createElement('button');
-    btnIzq.innerText = '⬅';
-    btnIzq.style.fontSize = '40px'; btnIzq.style.padding = '20px';
-    btnIzq.style.opacity = '0.5'; btnIzq.style.background = 'transparent';
-    btnIzq.style.border = 'none';
-    btnIzq.addEventListener('touchstart', () => teclas.izquierda = true);
-    btnIzq.addEventListener('touchend', () => teclas.izquierda = false);
+    const btnIzq=document.createElement('button');
+    btnIzq.innerText='⬅';
+    btnIzq.style.fontSize='40px'; btnIzq.style.padding='20px';
+    btnIzq.style.opacity='0.5'; btnIzq.style.background='transparent';
+    btnIzq.style.border='none';
+    btnIzq.addEventListener('touchstart',()=>teclas.izquierda=true);
+    btnIzq.addEventListener('touchend',()=>teclas.izquierda=false);
 
-    const btnDer = document.createElement('button');
-    btnDer.innerText = '➡';
-    btnDer.style.fontSize = '40px'; btnDer.style.padding = '20px';
-    btnDer.style.opacity = '0.5'; btnDer.style.background = 'transparent';
-    btnDer.style.border = 'none';
-    btnDer.addEventListener('touchstart', () => teclas.derecha = true);
-    btnDer.addEventListener('touchend', () => teclas.derecha = false);
+    const btnDer=document.createElement('button');
+    btnDer.innerText='➡';
+    btnDer.style.fontSize='40px'; btnDer.style.padding='20px';
+    btnDer.style.opacity='0.5'; btnDer.style.background='transparent';
+    btnDer.style.border='none';
+    btnDer.addEventListener('touchstart',()=>teclas.derecha=true);
+    btnDer.addEventListener('touchend',()=>teclas.derecha=false);
 
-    const btnSalto = document.createElement('button');
-    btnSalto.innerText = '⬆';
-    btnSalto.style.fontSize = '40px'; btnSalto.style.padding = '20px';
-    btnSalto.style.opacity = '0.5'; btnSalto.style.background = 'transparent';
-    btnSalto.style.border = 'none';
-    btnSalto.addEventListener('touchstart', () => { if (enSuelo) lit.dy = -SALTO; });
+    const btnSalto=document.createElement('button');
+    btnSalto.innerText='⬆';
+    btnSalto.style.fontSize='40px'; btnSalto.style.padding='20px';
+    btnSalto.style.opacity='0.5'; btnSalto.style.background='transparent';
+    btnSalto.style.border='none';
+    btnSalto.addEventListener('touchstart',()=>{if(enSuelo)lit.dy=-SALTO;});
 
     controls.appendChild(btnIzq);
     controls.appendChild(btnSalto);
