@@ -137,7 +137,7 @@ function loop() {
         let cols = 4, filas = showActivo ? 1 : 2;
         let sw = sprite.width / cols;
         let sh = sprite.height / filas;
-        let fila = showActivo ? 0 : 0; // fila 0 para caminar normal
+        let fila = showActivo ? 0 : 0;
         let f = Math.floor(Date.now() / (showActivo ? 250 : 150)) % cols;
         ctx.drawImage(sprite, f * sw, fila * sh, sw, sh, lit.x, lit.y, lit.w, lit.h);
     }
