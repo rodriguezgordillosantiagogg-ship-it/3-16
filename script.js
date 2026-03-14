@@ -6,15 +6,24 @@ const videoContainer = document.getElementById('videoContainer');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-const Y_SUELO = canvas.height - 120;
+const Y_SUELO = canvas.height - 100; // El nivel del piso
 
-// --- CARGA DE TUS ARCHIVOS ---
-const imgMasterLit = new Image(); imgMasterLit.src = 'lit_killah_master.png';
-const imgCantoLit = new Image(); imgCantoLit.src = 'lit_cantando_flow.png';
-const imgFondo = new Image(); imgFondo.src = 'fondo_ciudad_fiesta.jpg'; // Cambio a .jpg
-const imgBafle = new Image(); imgBafle.src = 'bafle_anim.png.png'; // Cambio a .png.png
-const imgMicro = new Image(); imgMicro.src = 'micro_anim.png'; // Cambio a micro_anim
-const imgGorra = new Image(); imgGorra.src = 'enemigo_gorra.png';
+// --- CARGA DE ARCHIVOS CON VERIFICACIÓN ---
+const assets = {
+    lit: new Image(),
+    canto: new Image(),
+    fondo: new Image(),
+    bafle: new Image(),
+    micro: new Image(),
+    gorra: new Image()
+};
+
+assets.lit.src = 'lit_killah_master.png';
+assets.canto.src = 'lit_cantando_flow.png';
+assets.fondo.src = 'fondo_ciudad_fiesta.jpg';
+assets.bafle.src = 'bafle_anim.png.png';
+assets.micro.src = 'micro_anim.png';
+assets.gorra.src = 'enemigo_gorra.png';
 
 const SPRITE_SIZE = 64; 
 let scrollOffset = 0;
@@ -22,79 +31,74 @@ let gameIsOver = false;
 let showIsRunning = false;
 let cinematicPlayed = false;
 
+// --- CLASE JUGADOR ---
 class Jugador {
     constructor() {
         this.x = 100; this.y = Y_SUELO - 128; this.dy = 0;
         this.estaEnSuelo = false;
-        this.frameWalk = 0; this.frameIdle = 0; this.frameCanto = 0;
+        this.frame = 0;
         this.timer = Date.now();
     }
+
     dibujar() {
         const ahora = Date.now();
+        let img = assets.lit;
+        let fila = 0; // 0 es Idle, 64 es Walk
+
         if (showIsRunning && cinematicPlayed) {
-            ctx.drawImage(imgCantoLit, this.frameCanto * SPRITE_SIZE, 0, SPRITE_SIZE, SPRITE_SIZE, this.x, this.y, 128, 128);
-            if (ahora - this.timer > 150) { this.frameCanto = (this.frameCanto + 1) % 4; this.timer = ahora; }
+            img = assets.canto;
+            fila = 0;
+            if (ahora - this.timer > 150) { this.frame = (this.frame + 1) % 4; this.timer = ahora; }
         } else if (teclas.derecha.presionada || teclas.izquierda.presionada) {
-            ctx.drawImage(imgMasterLit, this.frameWalk * SPRITE_SIZE, SPRITE_SIZE, SPRITE_SIZE, SPRITE_SIZE, this.x, this.y, 128, 128);
-            if (ahora - this.timer > 80) { this.frameWalk = (this.frameWalk + 1) % 4; this.timer = ahora; }
+            fila = 64; // Fila de caminar
+            if (ahora - this.timer > 80) { this.frame = (this.frame + 1) % 4; this.timer = ahora; }
         } else {
-            ctx.drawImage(imgMasterLit, this.frameIdle * SPRITE_SIZE, 0, SPRITE_SIZE, SPRITE_SIZE, this.x, this.y, 128, 128);
-            if (ahora - this.timer > 400) { this.frameIdle = (this.frameIdle + 1) % 2; this.timer = ahora; }
+            fila = 0; // Fila de parpadeo
+            if (ahora - this.timer > 400) { this.frame = (this.frame + 1) % 2; this.timer = ahora; }
         }
+
+        ctx.drawImage(img, this.frame * SPRITE_SIZE, fila, SPRITE_SIZE, SPRITE_SIZE, this.x, this.y, 128, 128);
     }
+
     actualizar() {
         if (showIsRunning && !cinematicPlayed) return;
         this.y += this.dy;
-        if (this.y + 128 + this.dy < Y_SUELO) { this.dy += 0.8; this.estaEnSuelo = false; }
+        if (this.y + 128 < Y_SUELO) { this.dy += 0.8; this.estaEnSuelo = false; }
         else { this.dy = 0; this.y = Y_SUELO - 128; this.estaEnSuelo = true; }
+        
         if (teclas.derecha.presionada && this.x < 400) this.x += 5;
         else if (teclas.izquierda.presionada && this.x > 100) this.x -= 5;
         else if (teclas.derecha.presionada) scrollOffset += 5;
     }
 }
 
-function activarCinematica() {
-    if (!showIsRunning) {
-        showIsRunning = true;
-        teclas.derecha.presionada = false;
-        videoContainer.style.display = 'block';
-        videoFinal.play();
-        videoFinal.onended = () => {
-            videoContainer.style.display = 'none';
-            cinematicPlayed = true;
-            audioFinal.play();
-        };
+// --- CLASE ENEMIGO ---
+class Enemigo {
+    constructor(x, y, img, tipo) {
+        this.x = x; this.y = y; this.img = img; this.tipo = tipo;
+        this.frame = 0; this.timer = Date.now();
+    }
+    dibujar() {
+        let posX = this.x - scrollOffset;
+        // Si es la gorra o bafle que tienen varios frames
+        ctx.drawImage(this.img, this.frame * SPRITE_SIZE, 0, SPRITE_SIZE, SPRITE_SIZE, posX, this.y, 80, 80);
+        if (Date.now() - this.timer > 150) { this.frame = (this.frame + 1) % 3; this.timer = Date.now(); }
     }
 }
 
 const lit = new Jugador();
+const enemigos = [
+    new Enemigo(1200, Y_SUELO - 80, assets.bafle, 'bafle'),
+    new Enemigo(2000, Y_SUELO - 200, assets.gorra, 'gorra'),
+    new Enemigo(2800, Y_SUELO - 80, assets.micro, 'micro')
+];
+
 const teclas = { derecha: { presionada: false }, izquierda: { presionada: false } };
 
+// --- CONTROLES ---
 window.addEventListener('keydown', (e) => {
     if (e.keyCode === 39) teclas.derecha.presionada = true;
     if (e.keyCode === 37) teclas.izquierda.presionada = true;
     if (e.keyCode === 32 && lit.estaEnSuelo) lit.dy = -15;
 });
 window.addEventListener('keyup', (e) => {
-    if (e.keyCode === 39) teclas.derecha.presionada = false;
-    if (e.keyCode === 37) teclas.izquierda.presionada = false;
-});
-
-document.getElementById('btnIzq').addEventListener('touchstart', (e) => { e.preventDefault(); teclas.izquierda.presionada = true; });
-document.getElementById('btnIzq').addEventListener('touchend', () => teclas.izquierda.presionada = false);
-document.getElementById('btnDer').addEventListener('touchstart', (e) => { e.preventDefault(); teclas.derecha.presionada = true; });
-document.getElementById('btnDer').addEventListener('touchend', () => teclas.derecha.presionada = false);
-document.getElementById('btnSalto').addEventListener('touchstart', (e) => { e.preventDefault(); if (lit.estaEnSuelo) lit.dy = -15; });
-
-function main() {
-    if (window.innerHeight > window.innerWidth) { requestAnimationFrame(main); return; }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let xFondo = -(scrollOffset * 0.5 % canvas.width);
-    ctx.drawImage(imgFondo, xFondo, 0, canvas.width, canvas.height);
-    ctx.drawImage(imgFondo, xFondo + canvas.width, 0, canvas.width, canvas.height);
-
-    lit.actualizar(); lit.dibujar();
-    if (scrollOffset > 3000) activarCinematica();
-    if (!gameIsOver) requestAnimationFrame(main);
-}
-main();
