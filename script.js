@@ -1,239 +1,34 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const videoFinal = document.getElementById('videoFinal');
-const audioFinal = document.getElementById('audioFinal');
-const videoContainer = document.getElementById('videoContainer');
-const playButton = document.getElementById('playButton');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lit Killah - Escena Cinemática</title>
+<style>
+  body, html { margin: 0; padding: 0; overflow: hidden; background: #000; height: 100vh; width: 100vw; }
+  canvas { display: block; image-rendering: pixelated; position: absolute; top:0; left:0; }
+  #carrusel { 
+    position: absolute; top:50%; left:50%; transform: translate(-50%,-50%); 
+    display:flex; overflow:hidden; width:80%; height:200px; pointer-events:none;
+  }
+  #carrusel img {
+    height:100%; margin:0 10px; object-fit:cover; border-radius:10px;
+  }
+  #videoContainer { display:none; position: fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:85%; max-width:800px; z-index:1000; border:4px solid #ffaa00; background:#000; }
+  video { width:100%; }
+</style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="carrusel"></div>
+  <div id="videoContainer">
+    <video id="videoFinal"><source src="intro_final.mp4" type="video/mp4"></video>
+  </div>
+  <audio id="audioFinal"><source src="mensaje_sofi.mp3" type="audio/mpeg"></audio>
 
-let Y_PISO;
-let scrollOffset = 0;
-
-// --- CONFIG ---
-const GRAVEDAD = 0.8;
-let VELOCIDAD = 6;
-let SALTO = 16;
-
-// Sprites
-const assets = {
-    lit: new Image(),
-    canto: new Image(),
-    fondo: new Image(),
-    bafle: new Image(),
-    gorra: new Image()
-};
-
-assets.lit.src = 'lit_killah_master.png';
-assets.canto.src = 'lit_cantando_flow.png';
-assets.fondo.src = 'fondo_ciudad_fiesta.jpg';
-assets.bafle.src = 'bafle_anim.png';
-assets.gorra.src = 'enemigo_gorra.png';
-
-// Estado
-let lit = { x: 100, y: 0, dy: 0, w: 120, h: 120, estado: 'quieto' }; // estados: 'quieto','camina','salta','canta'
-let enSuelo = false;
-let showActivo = false;
-let gameFinished = false;
-const teclas = { derecha: false, izquierda: false };
-
-// Enemigos
-const enemigos = [
-    { x: 1200, y: 0, w: 80, h: 80, sprite: 'bafle' },
-    { x: 2500, y: 0, w: 80, h: 80, sprite: 'gorra' },
-    { x: 3800, y: 0, w: 80, h: 80, sprite: 'bafle' }
-];
-
-// --- FUNCIONES ---
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    Y_PISO = canvas.height - 100;
-    lit.y = Y_PISO - lit.h;
-    enemigos.forEach(en => en.y = Y_PISO - en.h);
-    VELOCIDAD = Math.max(4, canvas.width / 160);
-    SALTO = Math.max(12, canvas.height / 50);
-}
-window.addEventListener('resize', resize);
-resize();
-
-// Reinicia juego
-function reiniciar() {
-    scrollOffset = 0;
-    lit.x = 100; lit.y = Y_PISO - lit.h; lit.dy = 0; lit.estado='quieto';
-    gameFinished = false;
-    showActivo = false;
-    teclas.derecha = false; teclas.izquierda = false;
-    videoContainer.style.display = "none";
-}
-
-// --- LOOP PRINCIPAL ---
-function loop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Mostrar mensaje si chocaste
-    if (gameFinished) {
-        ctx.fillStyle = "white";
-        ctx.font = "30px Arial";
-        ctx.fillText("¡CHOCHASTE! TOCA PARA REINICIAR", canvas.width/2 - 180, canvas.height/2);
-        requestAnimationFrame(loop);
-        return;
-    }
-
-    // 1. Fondo parallax
-    if (assets.fondo.complete) {
-        let xF = -(scrollOffset * 0.3 % canvas.width);
-        ctx.drawImage(assets.fondo, xF, 0, canvas.width, canvas.height);
-        ctx.drawImage(assets.fondo, xF + canvas.width, 0, canvas.width, canvas.height);
-    }
-
-    // 2. Piso
-    ctx.fillStyle = "#8b4513"; ctx.fillRect(0, Y_PISO, canvas.width, 100);
-    ctx.fillStyle = "#ffaa00"; ctx.fillRect(0, Y_PISO, canvas.width, 6);
-
-    // 3. Física personaje
-    if (!showActivo) {
-        lit.y += lit.dy;
-        if (lit.y + lit.h < Y_PISO) { 
-            lit.dy += GRAVEDAD; 
-            enSuelo = false; 
-            lit.estado='salta'; 
-        } else { 
-            lit.dy = 0; 
-            lit.y = Y_PISO - lit.h; 
-            enSuelo = true; 
-            lit.estado = teclas.derecha||teclas.izquierda ? 'camina':'quieto'; 
-        }
-
-        if (teclas.derecha) {
-            if (lit.x < canvas.width * 0.4) lit.x += VELOCIDAD;
-            else scrollOffset += VELOCIDAD;
-        }
-        if (teclas.izquierda) {
-            if (lit.x > 50) lit.x -= VELOCIDAD;
-            else scrollOffset = Math.max(0, scrollOffset - VELOCIDAD);
-        }
-    }
-
-    // 4. Enemigos y colisiones
-    enemigos.forEach(en => {
-        let ex = en.x - scrollOffset;
-        if (ex > -en.w && ex < canvas.width) {
-            if (assets[en.sprite].complete) {
-                let f = Math.floor(Date.now() / 150) % 4;
-                ctx.drawImage(
-                    assets[en.sprite],
-                    f * (assets[en.sprite].width / 4), 0,
-                    assets[en.sprite].width / 4, assets[en.sprite].height,
-                    ex, en.y, en.w, en.h
-                );
-            }
-
-            let litBox = {x: lit.x + 10, y: lit.y + 10, w: lit.w - 20, h: lit.h - 10};
-            let enBox = {x: ex, y: en.y, w: en.w, h: en.h};
-            if (!showActivo &&
-                litBox.x < enBox.x + enBox.w &&
-                litBox.x + litBox.w > enBox.x &&
-                litBox.y < enBox.y + enBox.h &&
-                litBox.y + litBox.h > enBox.y
-            ) gameFinished = true;
-        }
-    });
-
-    // 5. Personaje con animaciones correctas
-    let sprite = showActivo ? assets.canto : assets.lit;
-    if (sprite.complete) {
-        let cols = 4;
-        let filas = showActivo ? 1 : 2;
-        let sw = showActivo ? 384 : 384; // ancho de un frame
-        let sh = showActivo ? 512 : 512; // alto de un frame
-        let fila = 0;
-        if(!showActivo){
-            if(lit.estado=='camina') fila=1;
-            else fila=0;
-        }
-        let f = Math.floor(Date.now() / (showActivo?250:150)) % cols;
-        ctx.drawImage(sprite,f*sw,fila*sh,sw,sh,lit.x,lit.y,lit.w,lit.h);
-    }
-
-    // 6. Meta
-    let metaX = 5000 - scrollOffset;
-    ctx.fillStyle = "white"; ctx.fillRect(metaX, Y_PISO - 300, 8, 300);
-    ctx.fillStyle = "red"; ctx.fillRect(metaX + 8, Y_PISO - 300, 50, 40);
-
-    // 7. Barra de progreso
-    let progreso = Math.min(scrollOffset/5000,1);
-    ctx.fillStyle = "#444"; ctx.fillRect(10,10,canvas.width-20,20);
-    ctx.fillStyle = "#ffaa00"; ctx.fillRect(10,10,(canvas.width-20)*progreso,20);
-
-    // 8. Activar show final
-    if(scrollOffset>4950 && !showActivo){
-        showActivo=true;
-        teclas.derecha=false; teclas.izquierda=false;
-        videoContainer.style.display="block";
-        videoFinal.play().catch(()=>console.log("Clic para activar video/audio"));
-        videoFinal.onended=()=>{
-            videoContainer.style.display="none";
-            audioFinal.play().catch(()=>console.log("Clic para activar audio"));
-        };
-    }
-
-    requestAnimationFrame(loop);
-}
-
-// --- CONTROLES TECLADO ---
-window.addEventListener('keydown',e=>{
-    if(e.code==='ArrowRight') teclas.derecha=true;
-    if(e.code==='ArrowLeft') teclas.izquierda=true;
-    if(e.code==='Space' && enSuelo && !showActivo) lit.dy=-SALTO;
-});
-window.addEventListener('keyup',e=>{
-    if(e.code==='ArrowRight') teclas.derecha=false;
-    if(e.code==='ArrowLeft') teclas.izquierda=false;
-});
-
-// --- BOTÓN DE INICIO ---
-playButton.onclick=()=>{ playButton.style.display="none"; loop(); };
-
-// --- REINICIO AL TOCAR ---
-canvas.addEventListener('click',()=>{ if(gameFinished) reiniciar(); });
-canvas.addEventListener('touchstart',()=>{ if(gameFinished) reiniciar(); });
-
-// --- CONTROLES MÓVILES ---
-function createMobileControls(){
-    const controls=document.createElement('div');
-    controls.style.position='fixed';
-    controls.style.bottom='10px';
-    controls.style.left='0';
-    controls.style.width='100%';
-    controls.style.display='flex';
-    controls.style.justifyContent='space-around';
-    controls.style.zIndex=1500;
-
-    const btnIzq=document.createElement('button');
-    btnIzq.innerText='⬅';
-    btnIzq.style.fontSize='40px'; btnIzq.style.padding='20px';
-    btnIzq.style.opacity='0.5'; btnIzq.style.background='transparent';
-    btnIzq.style.border='none';
-    btnIzq.addEventListener('touchstart',()=>teclas.izquierda=true);
-    btnIzq.addEventListener('touchend',()=>teclas.izquierda=false);
-
-    const btnDer=document.createElement('button');
-    btnDer.innerText='➡';
-    btnDer.style.fontSize='40px'; btnDer.style.padding='20px';
-    btnDer.style.opacity='0.5'; btnDer.style.background='transparent';
-    btnDer.style.border='none';
-    btnDer.addEventListener('touchstart',()=>teclas.derecha=true);
-    btnDer.addEventListener('touchend',()=>teclas.derecha=false);
-
-    const btnSalto=document.createElement('button');
-    btnSalto.innerText='⬆';
-    btnSalto.style.fontSize='40px'; btnSalto.style.padding='20px';
-    btnSalto.style.opacity='0.5'; btnSalto.style.background='transparent';
-    btnSalto.style.border='none';
-    btnSalto.addEventListener('touchstart',()=>{if(enSuelo)lit.dy=-SALTO;});
-
-    controls.appendChild(btnIzq);
-    controls.appendChild(btnSalto);
-    controls.appendChild(btnDer);
-    document.body.appendChild(controls);
-}
-createMobileControls();
+  <input type="file" id="uploadFotos" multiple style="position:fixed; top:10px; left:10px; z-index:2000;">
+  
+  <script src="script.js"></script>
+</body>
+</html>
