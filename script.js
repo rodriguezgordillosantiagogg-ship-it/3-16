@@ -23,6 +23,7 @@ const assets = {
     bafle: new Image(), micro: new Image(), gorra: new Image()
 };
 
+// --- CARGA DE ASSETS ---
 assets.lit.onload = checkCarga; assets.lit.src = 'lit_killah_master.png';
 assets.canto.onload = checkCarga; assets.canto.src = 'lit_cantando_flow.png';
 assets.fondo.onload = checkCarga; assets.fondo.src = 'fondo_ciudad_fiesta.jpg';
@@ -76,6 +77,7 @@ const enemigos = [
     new Enemigo(3500, Y_PISO - 80, assets.micro)
 ];
 
+// --- EVENTOS ---
 window.addEventListener('keydown', (e) => {
     if (e.code === 'ArrowRight') teclas.derecha.presionada = true;
     if (e.code === 'ArrowLeft') teclas.izquierda.presionada = true;
@@ -85,6 +87,13 @@ window.addEventListener('keyup', (e) => {
     if (e.code === 'ArrowRight') teclas.derecha.presionada = false;
     if (e.code === 'ArrowLeft') teclas.izquierda.presionada = false;
 });
+
+// Touch (Celular)
+document.getElementById('btnIzq').addEventListener('touchstart', (e) => { e.preventDefault(); teclas.izquierda.presionada = true; });
+document.getElementById('btnIzq').addEventListener('touchend', () => teclas.izquierda.presionada = false);
+document.getElementById('btnDer').addEventListener('touchstart', (e) => { e.preventDefault(); teclas.derecha.presionada = true; });
+document.getElementById('btnDer').addEventListener('touchend', () => teclas.derecha.presionada = false);
+document.getElementById('btnSalto').addEventListener('touchstart', (e) => { e.preventDefault(); if (lit.y >= Y_PISO - 121) lit.dy = -16; });
 
 function activarCinematica() {
     showIsRunning = true;
