@@ -3,31 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lit Killah: El Último Baile - ADSO</title>
+    <title>Lit Killah Adventure - ADSO Edition</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
-        canvas { 
-            display: block; 
-            image-rendering: pixelated; /* Para que el Pixel Art se vea pro */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita que la página se mueva */
+            background-color: #000;
+            font-family: Arial, sans-serif;
         }
-        #videoContainer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 200; }
-        video { width: 100%; height: 100%; object-fit: contain; }
-        .ui-controls { position: fixed; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 40px; box-sizing: border-box; pointer-events: none; z-index: 10; }
-        .btn { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2); border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; pointer-events: auto; user-select: none; backdrop-filter: blur(5px); }
-        .btn:active { background: rgba(255, 255, 255, 0.5); }
-        #rotate-message { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 300; flex-direction: column; align-items: center; justify-content: center; }
-        @media (orientation: portrait) { #rotate-message { display: flex; } }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        #videoContainer {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 800px;
+            border: 5px solid #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.5);
+            z-index: 10;
+        }
+        video {
+            width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
-    <div id="rotate-message"><h2>🔄 Gira el celular para jugar</h2></div>
-    <div id="videoContainer"><video id="videoFinal"><source src="intro_final.mp4" type="video/mp4"></video></div>
+
     <canvas id="gameCanvas"></canvas>
-    <div class="ui-controls">
-        <div style="display: flex; gap: 20px;"><div id="btnIzq" class="btn">◀</div><div id="btnDer" class="btn">▶</div></div>
-        <div id="btnSalto" class="btn">JUMP</div>
+
+    <div id="videoContainer">
+        <video id="videoFinal">
+            <source src="video_final.mp4" type="video/mp4">
+            Tu navegador no soporta video.
+        </video>
     </div>
-    <audio id="audioFinal" src="mensaje_sofi.mp3"></audio>
+
+    <audio id="audioFinal">
+        <source src="audio_mensaje.mp3" type="audio/mpeg">
+    </audio>
+
     <script src="script.js"></script>
 </body>
 </html>
