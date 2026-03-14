@@ -8,12 +8,12 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const Y_SUELO = canvas.height - 120;
 
-// CARGA DE ACTIVOS
+// --- CARGA DE TUS ARCHIVOS ---
 const imgMasterLit = new Image(); imgMasterLit.src = 'lit_killah_master.png';
 const imgCantoLit = new Image(); imgCantoLit.src = 'lit_cantando_flow.png';
-const imgFondo = new Image(); imgFondo.src = 'fondo_ciudad_fiesta.png';
-const imgBafle = new Image(); imgBafle.src = 'enemigo_bafle.png';
-const imgMicro = new Image(); imgMicro.src = 'enemigo_micro.png';
+const imgFondo = new Image(); imgFondo.src = 'fondo_ciudad_fiesta.jpg'; // Cambio a .jpg
+const imgBafle = new Image(); imgBafle.src = 'bafle_anim.png.png'; // Cambio a .png.png
+const imgMicro = new Image(); imgMicro.src = 'micro_anim.png'; // Cambio a micro_anim
 const imgGorra = new Image(); imgGorra.src = 'enemigo_gorra.png';
 
 const SPRITE_SIZE = 64; 
@@ -29,7 +29,6 @@ class Jugador {
         this.frameWalk = 0; this.frameIdle = 0; this.frameCanto = 0;
         this.timer = Date.now();
     }
-
     dibujar() {
         const ahora = Date.now();
         if (showIsRunning && cinematicPlayed) {
@@ -43,9 +42,8 @@ class Jugador {
             if (ahora - this.timer > 400) { this.frameIdle = (this.frameIdle + 1) % 2; this.timer = ahora; }
         }
     }
-
     actualizar() {
-        if (showIsRunning && !cinematicPlayed) return; // Pausa durante el video
+        if (showIsRunning && !cinematicPlayed) return;
         this.y += this.dy;
         if (this.y + 128 + this.dy < Y_SUELO) { this.dy += 0.8; this.estaEnSuelo = false; }
         else { this.dy = 0; this.y = Y_SUELO - 128; this.estaEnSuelo = true; }
@@ -55,14 +53,12 @@ class Jugador {
     }
 }
 
-// Lógica de Cinemática Final
 function activarCinematica() {
     if (!showIsRunning) {
         showIsRunning = true;
         teclas.derecha.presionada = false;
         videoContainer.style.display = 'block';
         videoFinal.play();
-        
         videoFinal.onended = () => {
             videoContainer.style.display = 'none';
             cinematicPlayed = true;
@@ -74,7 +70,6 @@ function activarCinematica() {
 const lit = new Jugador();
 const teclas = { derecha: { presionada: false }, izquierda: { presionada: false } };
 
-// CONTROLES (PC & TOUCH)
 window.addEventListener('keydown', (e) => {
     if (e.keyCode === 39) teclas.derecha.presionada = true;
     if (e.keyCode === 37) teclas.izquierda.presionada = true;
@@ -99,7 +94,6 @@ function main() {
     ctx.drawImage(imgFondo, xFondo + canvas.width, 0, canvas.width, canvas.height);
 
     lit.actualizar(); lit.dibujar();
-
     if (scrollOffset > 3000) activarCinematica();
     if (!gameIsOver) requestAnimationFrame(main);
 }
