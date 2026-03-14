@@ -1,115 +1,129 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const videoFinal = document.getElementById('videoFinal');
+const audioFinal = document.getElementById('audioFinal');
+const videoContainer = document.getElementById('videoContainer');
 
-// Forzamos el tamaño del canvas al iniciar
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
-// --- CONFIGURACIÓN ESTÁTICA ---
-const config = {
-    gravedad: 0.8,
-    sueloY: canvas.height - 100,
-    velocidad: 6,
-    salto: -16
+// --- CONFIGURACIÓN ---
+const GRAVEDAD = 0.8;
+const Y_PISO = canvas.height - 100;
+
+const assets = {
+    lit: new Image(), canto: new Image(), fondo: new Image(), bafle: new Image()
 };
+assets.lit.src = 'lit_killah_master.png';
+assets.canto.src = 'lit_cantando_flow.png';
+assets.fondo.src = 'fondo_ciudad_fiesta.jpg';
+assets.bafle.src = 'bafle_anim.png';
 
-// --- ESTADO DEL JUEGO ---
-let game = {
-    x: 100,
-    y: config.sueloY - 120,
-    dy: 0,
-    scroll: 0,
-    frames: 0,
-    lastUpdate: 0,
-    running: true
-};
-
+// --- ESTADO ---
+let scrollOffset = 0;
+let lit = { x: 100, y: Y_PISO - 120, dy: 0, w: 120, h: 120 };
+let enSuelo = false;
+let showActivo = false;
+let gameFinished = false;
 const teclas = { derecha: false };
 
-// --- CARGA SEGURA DE IMÁGENES ---
-const img = {
-    lit: new Image(),
-    fondo: new Image(),
-    bafle: new Image()
-};
+// Enemigos fijos (Bafles)
+const enemigos = [
+    { x: 1200, y: Y_PISO - 80, w: 80, h: 80 },
+    { x: 2500, y: Y_PISO - 80, w: 80, h: 80 },
+    { x: 3800, y: Y_PISO - 80, w: 80, h: 80 }
+];
 
-// Asignamos rutas (Asegúrate que los nombres coincidan en tu carpeta)
-img.lit.src = 'lit_killah_master.png';
-img.fondo.src = 'fondo_ciudad_fiesta.jpg';
-img.bafle.src = 'bafle_anim.png';
-
-// --- MOTOR DE DIBUJO (Sin parpadeo) ---
-function render(now) {
-    if (!game.running) return;
-
-    // Control de tiempo para que no parpadee
-    const dt = now - game.lastUpdate;
-    game.lastUpdate = now;
-
-    // 1. Limpiar pantalla
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 2. Dibujar Fondo (Parallax)
-    if (img.fondo.complete) {
-        let fx = -(game.scroll * 0.3 % canvas.width);
-        ctx.drawImage(img.fondo, fx, 0, canvas.width, canvas.height);
-        ctx.drawImage(img.fondo, fx + canvas.width, 0, canvas.width, canvas.height);
+function loop() {
+    if (gameFinished) {
+        ctx.fillStyle = "white"; ctx.font = "30px Arial";
+        ctx.fillText("¡CHOCHASTE! RECARGA", canvas.width/2 - 150, canvas.height/2);
+        return;
     }
 
-    // 3. Dibujar Suelo Sólido
-    ctx.fillStyle = "#8b4513";
-    ctx.fillRect(0, config.sueloY, canvas.width, 100);
-    ctx.fillStyle = "#ffaa00";
-    ctx.fillRect(0, config.sueloY, canvas.width, 5);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 4. Lógica de Física
-    game.y += game.dy;
-    if (game.y + 120 < config.sueloY) {
-        game.dy += config.gravedad;
-    } else {
-        game.dy = 0;
-        game.y = config.sueloY - 120;
+    // 1. FONDO (Parallax)
+    if (assets.fondo.complete) {
+        let xF = -(scrollOffset * 0.3 % canvas.width);
+        ctx.drawImage(assets.fondo, xF, 0, canvas.width, canvas.height);
+        ctx.drawImage(assets.fondo, xF + canvas.width, 0, canvas.width, canvas.height);
     }
 
-    if (teclas.derecha) {
-        if (game.x < 400) game.x += config.velocidad;
-        else game.scroll += config.velocidad;
+    // 2. PISO (Estilo Mario)
+    ctx.fillStyle = "#8b4513"; ctx.fillRect(0, Y_PISO, canvas.width, 100);
+    ctx.fillStyle = "#ffaa00"; ctx.fillRect(0, Y_PISO, canvas.width, 6);
+
+    // 3. FÍSICA Y MOVIMIENTO
+    if (!showActivo) {
+        lit.y += lit.dy;
+        if (lit.y + lit.h < Y_PISO) {
+            lit.dy += GRAVEDAD;
+            enSuelo = false;
+        } else {
+            lit.dy = 0; lit.y = Y_PISO - lit.h;
+            enSuelo = true;
+        }
+
+        if (teclas.derecha) {
+            if (lit.x < 400) lit.x += 6;
+            else scrollOffset += 6;
+        }
     }
 
-    // 5. Dibujar a Lit con Recorte Preciso
-    if (img.lit.complete) {
-        let fila = teclas.derecha ? 1 : 0;
-        let sw = img.lit.width / 4;
-        let sh = img.lit.height / 2;
-        let anim = Math.floor(now / 100) % 4; // Animación basada en tiempo real
-        
-        ctx.drawImage(img.lit, anim * sw, fila * sh, sw, sh, game.x, game.y, 120, 120);
-    } else {
-        // Marcador de posición por si la imagen falla
-        ctx.fillStyle = "red";
-        ctx.fillRect(game.x, game.y, 60, 120);
+    // 4. ENEMIGOS Y COLISIONES
+    enemigos.forEach(en => {
+        let ex = en.x - scrollOffset;
+        if (ex > -100 && ex < canvas.width) {
+            if (assets.bafle.complete) {
+                let f = Math.floor(Date.now() / 150) % 4;
+                ctx.drawImage(assets.bafle, f * (assets.bafle.width/4), 0, assets.bafle.width/4, assets.bafle.height, ex, en.y, en.w, en.h);
+            }
+            // Colisión precisa
+            if (!showActivo && lit.x < ex + en.w - 20 && lit.x + lit.w - 40 > ex + 20 && lit.y + lit.h > en.y + 10) {
+                gameFinished = true;
+            }
+        }
+    });
+
+    // 5. PERSONAJE (Lit)
+    let sprite = showActivo ? assets.canto : assets.lit;
+    if (sprite.complete) {
+        let fila = (teclas.derecha && !showActivo) ? 1 : 0;
+        let sw = sprite.width / 4;
+        let sh = showActivo ? sprite.height : sprite.height / 2;
+        let f = Math.floor(Date.now() / (showActivo ? 250 : 130)) % 4;
+        ctx.drawImage(sprite, f * sw, fila * sh, sw, sh, lit.x, lit.y, lit.w, lit.h);
     }
 
-    // 6. Dibujar Meta (Bandera)
-    let metaX = 4000 - game.scroll;
-    ctx.fillStyle = "white";
-    ctx.fillRect(metaX, config.sueloY - 250, 5, 250);
-    ctx.fillStyle = "red";
-    ctx.fillRect(metaX + 5, config.sueloY - 250, 40, 30);
+    // 6. META Y CINEMÁTICA
+    let metaX = 5000 - scrollOffset;
+    ctx.fillStyle = "white"; ctx.fillRect(metaX, Y_PISO - 300, 8, 300); // Mástil
+    ctx.fillStyle = "red"; ctx.fillRect(metaX + 8, Y_PISO - 300, 50, 40); // Bandera
 
-    requestAnimationFrame(render);
+    if (scrollOffset > 4950 && !showActivo) {
+        showActivo = true;
+        teclas.derecha = false;
+        videoContainer.style.display = "block";
+        videoFinal.play().catch(() => console.log("Clic para activar audio/video"));
+        videoFinal.onended = () => {
+            videoContainer.style.display = "none";
+            audioFinal.play();
+        };
+    }
+
+    requestAnimationFrame(loop);
 }
 
-// --- CONTROLES ---
-window.addEventListener('keydown', (e) => {
+// CONTROLES
+window.onkeydown = (e) => {
     if (e.code === 'ArrowRight') teclas.derecha = true;
-    if (e.code === 'Space' && game.dy === 0) game.dy = config.salto;
-});
+    if (e.code === 'Space' && enSuelo && !showActivo) lit.dy = -16;
+};
+window.onkeyup = (e) => { if (e.code === 'ArrowRight') teclas.derecha = false; };
 
-window.addEventListener('keyup', (e) => {
-    if (e.code === 'ArrowRight') teclas.derecha = false;
-});
-
-// Arrancamos el motor
-requestAnimationFrame(render);
+loop();
