@@ -3,22 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lit Killah Adventure</title>
+    <title>Lit Killah Adventure - ADSO</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background: #000; height: 100vh; width: 100vw; }
-        canvas { display: block; }
-        #videoContainer {
-            display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); width: 80%; z-index: 100;
-            border: 3px solid #ffaa00;
+        /* Eliminamos cualquier margen para que el juego sea pantalla completa */
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        video { width: 100%; }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated; /* Mantiene a Lit nítido y pixelado */
+            background: #222;
+        }
+
+        /* Contenedor del video: centrado y por encima de todo */
+        #videoContainer {
+            display: none; 
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 800px;
+            z-index: 999;
+            border: 4px solid #ffaa00;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        video {
+            width: 100%;
+            display: block;
+        }
     </style>
 </head>
 <body>
+
     <canvas id="gameCanvas"></canvas>
-    <div id="videoContainer"><video id="videoFinal"><source src="video_final.mp4" type="video/mp4"></video></div>
-    <audio id="audioFinal"><source src="audio_mensaje.mp3" type="audio/mpeg"></audio>
+
+    <div id="videoContainer">
+        <video id="videoFinal">
+            <source src="video_final.mp4" type="video/mp4">
+            Tu navegador no soporta el video.
+        </video>
+    </div>
+
+    <audio id="audioFinal">
+        <source src="audio_mensaje.mp3" type="audio/mpeg">
+    </audio>
+
     <script src="script.js"></script>
 </body>
 </html>
